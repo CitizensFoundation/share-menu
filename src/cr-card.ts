@@ -8,6 +8,7 @@ import {
   CRCardObservedAttribute,
 } from './models';
 import { CRCardProperty } from './cr-card-property';
+import { waitForImage } from './helpers';
 
 /**
  * `cr-card`
@@ -203,6 +204,7 @@ export class CRCard extends HTMLElement {
     'description',
     'image',
     'stretch',
+    'assets-path',
   ];
 
   public static readonly supportedLanguages: CRCardLocale[] = [
@@ -218,42 +220,51 @@ export class CRCard extends HTMLElement {
     CRCardLocale.TR,
     CRCardLocale.RU,
   ];
-  private static readonly _fonts = ['SupercellMagic', 'SCCCBackBeat'];
-  private static readonly _assets = ['background', 'elixir', 'info'];
-  private static readonly _properties = [
-    'area_damage',
-    'boost',
-    'common_cards',
-    'count',
-    'damage',
-    'dark_elixir',
-    'death_damage',
-    'deploy_time',
-    'dps',
-    'elixir',
-    'epic_cards',
-    'gem',
-    'gold',
-    'hit_speed',
-    'hp',
-    'legendary_cards',
-    'lifetime',
-    'radius',
-    'rage_fx',
-    'range',
-    'rare_cards',
-    'shield_hp',
-    'speed',
-    'stun_duration',
-    'target',
-    'tower_damage',
-    'transport',
-    'troop',
-    'trophy',
-    'upgrade',
-  ];
-  private static readonly _frames = ['normal', 'legendary'];
+  private static readonly _neededFonts = ['supercell_magic', 'sc_ccbackbeat'];
 
+  private _assets = {
+    background: new Image(),
+    elixir: new Image(),
+    info: new Image(),
+  };
+  /* eslint-disable @typescript-eslint/camelcase */
+  private _properties = {
+    area_damage: new Image(),
+    boost: new Image(),
+    common_cards: new Image(),
+    count: new Image(),
+    damage: new Image(),
+    dark_elixir: new Image(),
+    death_damage: new Image(),
+    deploy_time: new Image(),
+    dps: new Image(),
+    elixir: new Image(),
+    epic_cards: new Image(),
+    gem: new Image(),
+    gold: new Image(),
+    hit_speed: new Image(),
+    hp: new Image(),
+    legendary_cards: new Image(),
+    lifetime: new Image(),
+    radius: new Image(),
+    rage_fx: new Image(),
+    range: new Image(),
+    rare_cards: new Image(),
+    shield_hp: new Image(),
+    speed: new Image(),
+    stun_duration: new Image(),
+    target: new Image(),
+    tower_damage: new Image(),
+    transport: new Image(),
+    troop: new Image(),
+    trophy: new Image(),
+    upgrade: new Image(),
+  };
+  /* eslint-enable @typescript-eslint/camelcase */
+  private _frames = {
+    normal: new Image(),
+    legendary: new Image(),
+  };
   private _canvasRef: HTMLCanvasElement;
   private _slotRef: HTMLSlotElement;
   private _context: CanvasRenderingContext2D;
@@ -263,8 +274,6 @@ export class CRCard extends HTMLElement {
 
   constructor() {
     super();
-
-    this._assetsPromise = Promise.all([]);
 
     this._template = document.createElement('template');
     this._template.innerHTML = `<!-- html -->
@@ -279,8 +288,21 @@ export class CRCard extends HTMLElement {
     this.shadowRoot.appendChild(this._template.content.cloneNode(true));
   }
 
+  /**
+   * Returns a promise that resolves to true when the assets are ready and
+   * to false if something goes wrong while loading the assets.
+   */
   public async ready() {
-    return this._assetsPromise ? await this._assetsPromise : false;
+    if (!this._assetsPromise) {
+      return false;
+    }
+
+    try {
+      await this._assetsPromise;
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -314,6 +336,42 @@ export class CRCard extends HTMLElement {
     if (oldValue === newValue) {
       return;
     }
+
+    switch (name) {
+      case 'assets-path':
+        this._assetsPromise = Promise.all([
+          ...CRCard._neededFonts.map((font) =>
+            new FontFace(font, `url(${newValue}/fonts/${font}.woff2)`).load(),
+          ),
+          ...(Object.keys(
+            this._assets,
+          ) as (keyof typeof CRCard.prototype._assets)[]).map((asset) => {
+            const imagePromise = waitForImage(this._assets[asset]);
+            this._assets[asset].src = `${this.assetsPath}/${asset}.png`;
+            return imagePromise;
+          }),
+          ...(Object.keys(
+            this._properties,
+          ) as (keyof typeof CRCard.prototype._properties)[]).map(
+            (property) => {
+              const imagePromise = waitForImage(this._properties[property]);
+              this._properties[
+                property
+              ].src = `${this.assetsPath}/properties/${property}.png`;
+              return imagePromise;
+            },
+          ),
+          ...(Object.keys(
+            this._frames,
+          ) as (keyof typeof CRCard.prototype._frames)[]).map((frame) => {
+            const imagePromise = waitForImage(this._frames[frame]);
+            this._frames[frame].src = `${this.assetsPath}/frames/${frame}.png`;
+            return imagePromise;
+          }),
+        ]);
+        break;
+    }
+
     this.draw();
   }
 }

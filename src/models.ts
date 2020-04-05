@@ -24,7 +24,8 @@ export type CRCardObservedAttribute =
   | 'cost'
   | 'description'
   | 'image'
-  | 'stretch';
+  | 'stretch'
+  | 'assets-path';
 
 export enum CRCardLocale {
   EN = 'en',

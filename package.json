@@ -32,6 +32,7 @@
     "@polymer/paper-input": "^3.2.1",
     "@polymer/paper-styles": "^3.0.1",
     "@polymer/paper-toggle-button": "^3.0.1",
+    "@types/css-font-loading-module": "0.0.4",
     "@typescript-eslint/eslint-plugin": "^2.26.0",
     "@typescript-eslint/parser": "^2.26.0",
     "@webcomponents/webcomponentsjs": "^2.4.3",

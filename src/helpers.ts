@@ -43,3 +43,9 @@ export const fitFontSize = (
   }
   return fontSize;
 };
+
+export const waitForImage = (image: HTMLImageElement) =>
+  new Promise((resolve, reject) => {
+    image.addEventListener('load', () => resolve(image), { once: true });
+    image.addEventListener('error', reject, { once: true });
+  });
