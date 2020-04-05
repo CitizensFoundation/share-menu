@@ -1,0 +1,8 @@
+.idea/
+node_modules/
+.rpt2_cache/
+demo/
+/cr-card.*
+/cr-card-property.*
+*.log
+coverage/

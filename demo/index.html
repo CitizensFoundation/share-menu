@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1, user-scalable=yes">
+
+  <title>cr-card demo</title>
+
+  <script src="../node_modules/@webcomponents/webcomponentsjs/webcomponents-loader.js"></script>
+
+  <script type="module">
+    import '@polymer/iron-demo-helpers/demo-pages-shared-styles';
+    import '@polymer/iron-demo-helpers/demo-snippet';
+    import 'cr-button';
+  </script>
+
+  <script type="module" src="../cr-card.js"></script>
+  <script type="module" src="../cr-card-property.js"></script>
+
+  <custom-style>
+    <style is="custom-style" include="demo-pages-shared-styles">
+      .container {
+        text-align: center;
+      }
+
+      cr-card {
+        width: 100%;
+        height: auto;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+    </style>
+  </custom-style>
+</head>
+<body>
+<div class="vertical-section-container centered">
+  <demo-snippet>
+    <h3>Advanced cr-card demo with all properties set</h3>
+    <template>
+      <div class="container">
+        <cr-card
+            id="card"
+            language="en"
+            card-name="#UseThePlatform"
+            rarity="legendary"
+            level="5"
+            type="spell"
+            elixir-cost="9"
+            description="Just use it!"
+            image="https://web-components-resources.appspot.com/static/logo.svg">
+          <cr-card-property title="Philosophy" value="100% open source" icon="shield_hp"></cr-card-property>
+          <cr-card-property title="License" value="MIT" icon="common_cards" show-info-button></cr-card-property>
+        </cr-card>
+        <cr-button small success onclick="card.save();">Download</cr-button>
+        <cr-button small info onclick="card.exportFile()">Export</cr-button>
+        <label for="import">
+          <cr-button small>Import</cr-button>
+          <input type="file" id="import" accept=".card" hidden>
+        </label>
+      </div>
+
+      <script>
+        var cardImport = document.getElementById('import');
+        var card = document.getElementById('card');
+
+        cardImport.addEventListener('change', function () {
+          if (cardImport.files[0])
+            card.importFile(cardImport.files[0]);
+        });
+      </script>
+    </template>
+  </demo-snippet>
+</div>
+</body>
+</html>
