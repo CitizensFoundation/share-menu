@@ -324,7 +324,7 @@ export class CRCard extends HTMLElement {
     );
     this._slotRef = this.shadowRoot.querySelector<HTMLSlotElement>('slot');
     this._context = this._canvasRef.getContext('2d');
-    this._slotRef.addEventListener('slotchange', console.log);
+    this._slotRef.addEventListener('slotchange', () => this.draw());
   }
 
   /** @private */
