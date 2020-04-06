@@ -220,8 +220,14 @@ export class CRCard extends HTMLElement {
     CRCardLocale.TR,
     CRCardLocale.RU,
   ];
-  private static readonly _neededFonts = ['supercell_magic', 'sc_ccbackbeat'];
+  /* eslint-disable @typescript-eslint/camelcase */
+  private static readonly _neededFonts = {
+    SUPERCELL_MAGIC: 'Supercell Magic',
+    SC_CCBACKBEAT: 'SC CCBackBeat',
+  };
 
+  private _isReady = false;
+  private _isDrawing = false;
   private _assets = {
     background: new Image(),
     elixir: new Image(),
@@ -265,6 +271,7 @@ export class CRCard extends HTMLElement {
     normal: new Image(),
     legendary: new Image(),
   };
+  private _image = new Image();
   private _canvasRef: HTMLCanvasElement;
   private _slotRef: HTMLSlotElement;
   private _context: CanvasRenderingContext2D;
@@ -340,35 +347,62 @@ export class CRCard extends HTMLElement {
     switch (name) {
       case 'assets-path':
         this._assetsPromise = Promise.all([
-          ...CRCard._neededFonts.map((font) =>
-            new FontFace(font, `url(${newValue}/fonts/${font}.woff2)`).load(),
+          ...Object.entries(CRCard._neededFonts).map(
+            async ([fontId, fontName]) => {
+              for (const { family } of document.fonts.values()) {
+                if (family === fontName) {
+                  await document.fonts.ready;
+                  return;
+                }
+              }
+
+              const fontFace = new FontFace(
+                fontName,
+                `url(${newValue}/fonts/${fontId}.woff2)`,
+              );
+
+              await fontFace.load();
+
+              document.fonts.add(fontFace);
+            },
           ),
           ...(Object.keys(
             this._assets,
-          ) as (keyof typeof CRCard.prototype._assets)[]).map((asset) => {
+          ) as (keyof typeof CRCard.prototype._assets)[]).map(async (asset) => {
             const imagePromise = waitForImage(this._assets[asset]);
+            this._assets[asset].crossOrigin = 'anonymous';
             this._assets[asset].src = `${this.assetsPath}/${asset}.png`;
-            return imagePromise;
+            await imagePromise;
           }),
           ...(Object.keys(
             this._properties,
           ) as (keyof typeof CRCard.prototype._properties)[]).map(
-            (property) => {
+            async (property) => {
               const imagePromise = waitForImage(this._properties[property]);
+              this._properties[property].crossOrigin = 'anonymous';
               this._properties[
                 property
               ].src = `${this.assetsPath}/properties/${property}.png`;
-              return imagePromise;
+              await imagePromise;
             },
           ),
           ...(Object.keys(
             this._frames,
-          ) as (keyof typeof CRCard.prototype._frames)[]).map((frame) => {
+          ) as (keyof typeof CRCard.prototype._frames)[]).map(async (frame) => {
             const imagePromise = waitForImage(this._frames[frame]);
+            this._frames[frame].crossOrigin = 'anonymous';
             this._frames[frame].src = `${this.assetsPath}/frames/${frame}.png`;
-            return imagePromise;
+            await imagePromise;
           }),
-        ]);
+        ]).then(() => {
+          this._isReady = true;
+          this.draw();
+        });
+        break;
+      case 'image':
+        waitForImage(this._image).then(() => this.draw());
+        this._image.crossOrigin = 'anonymous';
+        this._image.src = newValue;
         break;
     }
 
