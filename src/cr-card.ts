@@ -126,7 +126,8 @@ export class CRCard extends HTMLElement {
    */
   public get cost(): CRCardCost {
     const cost = this.getAttribute('cost');
-    return cost === '?' ? '?' : parseInt(cost, 10);
+    const parsedCost = parseInt(cost, 10);
+    return isNaN(parsedCost) ? cost : parsedCost;
   }
 
   public set cost(val: CRCardCost) {

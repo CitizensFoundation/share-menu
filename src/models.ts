@@ -13,7 +13,7 @@ export enum CRCardType {
 
 export type CRCardLevel = number;
 
-export type CRCardCost = '?' | number;
+export type CRCardCost = string | number;
 
 export type CRCardObservedAttribute =
   | 'language'
