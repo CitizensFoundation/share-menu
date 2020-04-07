@@ -162,6 +162,21 @@ export class CRCard extends HTMLElement {
   }
 
   /**
+   * The background color of the image.
+   * It will be shown under the image when the image has some transparent areas or it isn't set at all.
+   * Defaults to white if not set.
+   *
+   * @return {string}
+   */
+  public get imageBackgroundColor(): string {
+    return this.getAttribute('image-background-color');
+  }
+
+  public set imageBackgroundColor(val: string) {
+    this.setAttribute('image-background-color', val);
+  }
+
+  /**
    * If true, the card image will be stretched in the frame instead of being centered.
    *
    * @return {boolean}
@@ -204,7 +219,8 @@ export class CRCard extends HTMLElement {
     'cost',
     'description',
     'image',
-    'stretch',
+    'image-background-color',
+    'stretch-image',
     'assets-path',
   ];
 
@@ -234,7 +250,6 @@ export class CRCard extends HTMLElement {
     elixir: new Image(),
     info: new Image(),
   };
-  /* eslint-disable @typescript-eslint/camelcase */
   private _properties = {
     area_damage: new Image(),
     boost: new Image(),
@@ -276,7 +291,6 @@ export class CRCard extends HTMLElement {
   private _canvasRef: HTMLCanvasElement;
   private _slotRef: HTMLSlotElement;
   private _context: CanvasRenderingContext2D;
-  private _assetsPromise: Promise<any>;
 
   private readonly _template: HTMLTemplateElement;
 
@@ -289,28 +303,11 @@ export class CRCard extends HTMLElement {
         :host { display: inline-block; }
         canvas { width: 100%; height: auto; }
       </style>
-      <canvas width="1432" height="1794"></canvas>
+      <canvas width="1319" height="1597"></canvas>
       <slot></slot>
     `;
     this.attachShadow({ mode: 'open' });
     this.shadowRoot.appendChild(this._template.content.cloneNode(true));
-  }
-
-  /**
-   * Returns a promise that resolves to true when the assets are ready and
-   * to false if something goes wrong while loading the assets.
-   */
-  public async ready() {
-    if (!this._assetsPromise) {
-      return false;
-    }
-
-    try {
-      await this._assetsPromise;
-      return true;
-    } catch {
-      return false;
-    }
   }
 
   /**
@@ -320,10 +317,118 @@ export class CRCard extends HTMLElement {
    * but you can also call it yourself to force the update of the canvas.
    */
   public async draw() {
-    await this.ready();
+    if (this._isDrawing || !this._isReady) {
+      return;
+    }
+
+    this._isDrawing = true;
+
+    this._drawBackground();
+
+    this._drawCardImage();
+
+    // this._drawElixirCost();
+
+    this._isDrawing = false;
   }
 
-  public _drawProperty(property: CRCardProperty, x: number, y: number) {}
+  private _drawBackground() {
+    // Background
+    this._context.drawImage(
+      this._assets.background,
+      0,
+      0,
+      this._assets.background.width,
+      this._assets.background.height,
+    );
+  }
+
+  private _drawCardImage() {
+    // Card image
+    this._context.save();
+    this._context.translate(72, 38);
+    this._context.save();
+    this._context.beginPath();
+
+    // First of all, let's create the clip for the image based on the card rarity
+    if (this.rarity === 'legendary') {
+      this._context.moveTo(148, 5);
+      this._context.lineTo(301, 63);
+      this._context.lineTo(301, 357);
+      this._context.lineTo(148, 415);
+      this._context.lineTo(5, 357);
+      this._context.lineTo(5, 63);
+      this._context.clip();
+    } else {
+      this._context.moveTo(44, 14);
+      this._context.lineTo(300, 14);
+      this._context.quadraticCurveTo(330, 14, 330, 44);
+      this._context.lineTo(330, 381);
+      this._context.quadraticCurveTo(330, 411, 300, 411);
+      this._context.lineTo(44, 411);
+      this._context.quadraticCurveTo(14, 411, 14, 381);
+      this._context.lineTo(14, 44);
+      this._context.clip();
+    }
+
+    // Draw the image background
+    this._context.fillStyle = this.imageBackgroundColor || '#fff';
+    this._context.fillRect(0, 0, 320, 410);
+
+    // Now we can finally draw the image
+    if (this._image && this._image.src && this._image.complete) {
+      if (this.stretchImage) {
+        this._context.drawImage(this._image, 5, 5, 320, 410);
+      } else {
+        const ratio = Math.min(
+          320 / this._image.width,
+          410 / this._image.height,
+        );
+        this._context.drawImage(
+          this._image,
+          5 + (160 - (this._image.width * ratio) / 2),
+          5 + (205 - (this._image.height * ratio) / 2),
+          this._image.width * ratio,
+          this._image.height * ratio,
+        );
+      }
+    }
+    this._context.restore();
+
+    // Card frame
+    const frame = this._frames[
+      this.rarity === 'legendary' ? 'legendary' : 'normal'
+    ];
+    if (this.rarity === 'legendary') {
+      // this._context.drawImage(frame, 0, 0, 306, 420);
+    } else {
+      this._context.drawImage(frame, 9, 9, 326, 407);
+    }
+    this._context.restore();
+  }
+
+  private _drawElixirCost() {
+    this._context.save();
+
+    // Elixir drop
+    this._context.drawImage(this._assets.elixir, 48, 31, 88, 104);
+
+    // Elixir value
+    this._context.font = `60px "${CRCard._neededFonts.SUPERCELL_MAGIC}"`;
+    this._context.textAlign = 'center';
+    this._context.textBaseline = 'middle';
+    this._context.lineWidth = 6;
+    this._context.fillStyle = '#FFE9FF';
+    this._context.strokeStyle = '#760088';
+    this._context.shadowOffsetY = 5;
+    this._context.shadowColor = '#760088';
+    this._context.strokeText(`${this.cost}`, 92, 86);
+    this._context.fillText(`${this.cost}`, 92, 86);
+
+    this._context.restore();
+  }
+
+  private _drawProperty(property: CRCardProperty, x: number, y: number) {}
 
   /** @private */
   private connectedCallback() {
@@ -336,7 +441,7 @@ export class CRCard extends HTMLElement {
   }
 
   /** @private */
-  private attributeChangedCallback(
+  private async attributeChangedCallback(
     name: CRCardObservedAttribute,
     oldValue: string,
     newValue: string,
@@ -347,7 +452,7 @@ export class CRCard extends HTMLElement {
 
     switch (name) {
       case 'assets-path':
-        this._assetsPromise = Promise.all([
+        await Promise.all([
           ...Object.entries(CRCard._neededFonts).map(
             async ([fontId, fontName]) => {
               for (const { family } of document.fonts.values()) {
@@ -371,7 +476,6 @@ export class CRCard extends HTMLElement {
             this._assets,
           ) as (keyof typeof CRCard.prototype._assets)[]).map(async (asset) => {
             const imagePromise = waitForImage(this._assets[asset]);
-            this._assets[asset].crossOrigin = 'anonymous';
             this._assets[asset].src = `${this.assetsPath}/${asset}.png`;
             await imagePromise;
           }),
@@ -380,7 +484,6 @@ export class CRCard extends HTMLElement {
           ) as (keyof typeof CRCard.prototype._properties)[]).map(
             async (property) => {
               const imagePromise = waitForImage(this._properties[property]);
-              this._properties[property].crossOrigin = 'anonymous';
               this._properties[
                 property
               ].src = `${this.assetsPath}/properties/${property}.png`;
@@ -391,18 +494,16 @@ export class CRCard extends HTMLElement {
             this._frames,
           ) as (keyof typeof CRCard.prototype._frames)[]).map(async (frame) => {
             const imagePromise = waitForImage(this._frames[frame]);
-            this._frames[frame].crossOrigin = 'anonymous';
             this._frames[frame].src = `${this.assetsPath}/frames/${frame}.png`;
             await imagePromise;
           }),
-        ]).then(() => {
-          this._isReady = true;
-          this.draw();
-        });
+        ]);
+
+        this._isReady = true;
+        this.draw();
         break;
       case 'image':
         waitForImage(this._image).then(() => this.draw());
-        this._image.crossOrigin = 'anonymous';
         this._image.src = newValue;
         break;
     }
